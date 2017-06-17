@@ -20,28 +20,35 @@ namespace LazyPC
 	public partial class ViewModel : BaseObject
 		{
 		private string _connectionLabel = "You are not connected to any device";
-		private bool _isconnected = false;
 		private const int PORT = 2055;
 		private ICommand _ExitCommand;
 		private ICommand _AddCommand;
 		private ICommand _DelCommand;
 		private ICommand _DCCommand;
-		private Socket _socket;
-		private TcpListener _listener;
 		private ObservableCollection<AppEntry> _appList = new ObservableCollection<AppEntry>();
-		private NetworkStream _stream;
-		private StreamReader _sReader;
-		private StreamWriter _sWriter;
 		private Thread _thread;
 		private MainWindow _main;
+		private NetworkHandler _networkHandler;
+
+		public bool isConnected = false;
+		public Socket socket;
+		public TcpListener listener;
+		public NetworkStream stream;
+		public StreamReader sReader;
+		public StreamWriter sWriter;
 
 		public ViewModel(MainWindow main)
 			{
-			_listener = new TcpListener(IPAddress.Any, PORT);
-			_thread = new Thread(new ThreadStart(HandleConnection));
+			listener = new TcpListener(IPAddress.Any, PORT);
+			_thread = new Thread(new ThreadStart(StartConnection));
 			_thread.Start();
 			_main = main;
 			LoadList();
+			}
+
+		public void StartConnection()
+			{
+			_networkHandler = new NetworkHandler(this);
 			}
 
 		private void LoadList()
@@ -80,76 +87,19 @@ namespace LazyPC
 				}
 			}
 
-		public void HandleConnection()
-			{
-			while (true)
-				{
-				if (_isconnected == false)
-					{
-					try
-						{
-						_listener.Start();
-						_socket = _listener.AcceptSocket();
-						_listener.Stop();
-						_stream = new NetworkStream(_socket);
-						_sReader = new StreamReader(_stream);
-						_sWriter = new StreamWriter(_stream);
-						_sWriter.AutoFlush = true;
-						_sWriter.WriteLine("Are you the one I'm waiting for?");
-						if (_sReader.ReadLine().ToLower() == "yes")
-							{
-							ChangeConnectionStatus();
-							}
-						else
-							{
-							_sWriter.WriteLine("Sorry, I'm here for someone else.");
-							_socket.Disconnect(true);
-							}
-						}
-					catch (Exception ex)
-						{
-						MessageBox.Show("Exception when handling new connection: " + ex.ToString());
-						}
-					}
-				if (_isconnected == true)
-					{
-					try
-						{
-						if (_socket.Connected == true)
-							{
-							string _incomingMessage = _sReader.ReadLine();
-							switch (_incomingMessage)
-								{
-								case null:
-									if (_isconnected == true)
-										{
-										Disconnect();
-										}
-									break;
-								default:
-									MessageBox.Show(_incomingMessage);
-									break;
-								}
-							}
-						}
-					catch (Exception ex)
-						{
-						MessageBox.Show("Exception handling existing connection: " + ex.ToString());
-						}
-					}
-				}
-			}
+		
+
 		public void ChangeConnectionStatus()
 			{
-			if (_isconnected == true)
+			if (isConnected == true)
 				{
 				connectionLabel = "You are not connected to any device";
-				_isconnected = false;
+				isConnected = false;
 				}
 			else
 				{
-				connectionLabel = "You are connected to " + IPAddress.Parse(((IPEndPoint)_socket.RemoteEndPoint).Address.ToString()) + " through the port: " + PORT;
-				_isconnected = true;
+				connectionLabel = "You are connected to " + IPAddress.Parse(((IPEndPoint)socket.RemoteEndPoint).Address.ToString()) + " through the port: " + PORT;
+				isConnected = true;
 				}
 			}
 
@@ -163,8 +113,8 @@ namespace LazyPC
 
 		private void ExitApp()
 			{
-			_listener.Stop();
-			if (_stream != null)
+			listener.Stop();
+			if (stream != null)
 				{
 				Disconnect();
 				}
@@ -264,15 +214,15 @@ namespace LazyPC
 			{
 			try
 				{
-				if (_stream != null)
+				if (stream != null)
 					{
-					_sWriter.Close();
-					_sReader.Close();
-					_stream.Close();
+					sWriter.Close();
+					sReader.Close();
+					stream.Close();
 					ChangeConnectionStatus();
-					if (_socket.Connected == true)
+					if (socket.Connected == true)
 						{
-						_socket.Disconnect(true);
+						socket.Disconnect(true);
 						}
 					}
 				}

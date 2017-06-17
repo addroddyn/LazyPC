@@ -57,6 +57,7 @@
     </ApplicationDefinition>
     <Compile Include="BaseObject.cs" />
     <Compile Include="CommandHandler.cs" />
+    <Compile Include="NetworkHandler.cs" />
     <Compile Include="ViewModel.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
