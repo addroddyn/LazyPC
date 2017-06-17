@@ -1,0 +1,3 @@
+DAOriginsLauncher.exe;F:\GOG Games\Dragon Age Origins\DAOriginsLauncher.exe
+NieRAutomata.exe;F:\Games\NieR - Automata\NieRAutomata.exe
+~~
