@@ -14,13 +14,17 @@ using LazyPC;
 using System.Net.NetworkInformation;
 using System.ComponentModel;
 using Microsoft.Win32;
+using System.Diagnostics;
 
 namespace LazyPC
 	{
 	class NetworkHandler
 		{
 
-		ViewModel _viewModel;
+		private ViewModel _viewModel;
+		private string[] _parsedMessage;
+		private string _incomingMessage;
+		private DateTime _shutdownTime;
 
 
 		public NetworkHandler(ViewModel viewModel)
@@ -66,7 +70,7 @@ namespace LazyPC
 						{
 						if (_viewModel.socket.Connected == true)
 							{
-							GetMessage();
+							ParseMessage();
 							}
 						}
 					catch (Exception ex)
@@ -77,36 +81,115 @@ namespace LazyPC
 				}
 			}
 
-		public void GetMessage()
+		public void ParseMessage()
 			{
 			try
 				{
-				string _incomingMessage = _viewModel.sReader.ReadLine();
+				_incomingMessage = _viewModel.sReader.ReadLine();
 				if (_incomingMessage == null && _viewModel.isConnected == true)
-					{
-					_viewModel.Disconnect();
-					}
-				else if (_incomingMessage.StartsWith("system"))
-					{
-					MessageBox.Show("System command");
-					}
-				else if (_incomingMessage.StartsWith("application"))
-					{
-					MessageBox.Show("Application command");
-					}
-				else if (_incomingMessage.Equals("disconnect"))
 					{
 					_viewModel.Disconnect();
 					}
 				else
 					{
-					MessageBox.Show("Unknown messagetype.");
+					_parsedMessage = _incomingMessage.ToLower().Split(';');
+					}
+				if (_parsedMessage.Count() != 3 && _incomingMessage != null)
+					{
+					_viewModel.sWriter.WriteLine("Wrong format. Should be:\n\rmessageType;firstArgument;secondArgument");
+					return;
+					}
+				else if (_parsedMessage.Count() == 3 && _incomingMessage != null)
+					{
+					switch (_parsedMessage[0])
+						{
+						case "system":
+							_viewModel.sWriter.WriteLine("this is a system message.");
+							ParseSystemMessage();
+							break;
+						case "application":
+							_viewModel.sWriter.WriteLine("this is an application message.");
+							break;
+						default:
+							_viewModel.sWriter.WriteLine("Unknown message type.");
+							_viewModel.sWriter.WriteLine("Your message:");
+							foreach (string token in _parsedMessage)
+								_viewModel.sWriter.WriteLine(token);
+							break;
+						}
 					}
 				}
 			catch (Exception ex)
 				{
-				MessageBox.Show("Error when getting message from client: " + ex.ToString());
+				if (ex.ToString().Contains("An established connection was aborted by the software in your host machine."))
+					{
+					_viewModel.Disconnect();
+					}
 				}
+			}
+
+		private void ParseSystemMessage()
+			{
+			try
+				{
+				switch(_parsedMessage[1])
+					{
+					case "disconnect":
+						_viewModel.sWriter.WriteLine("User disconnect");
+						_viewModel.Disconnect();
+						break;
+					case "shutdown":
+						if (_parsedMessage[2] != "")
+							{
+							if (CheckShutdownTime())
+								{
+								_shutdownTime = DateTime.Parse(_parsedMessage[2]);
+								_viewModel.sWriter.WriteLine("Shutdown is scheduled for: " + _shutdownTime.ToString());
+								Thread shutdownThread = new Thread(new ThreadStart(ShutDownPC));
+								shutdownThread.Start();
+								}
+							else
+								{
+								_viewModel.sWriter.WriteLine("Incorrect time format. It should hh:mm .");
+								}
+							}
+						break;
+					default:
+						_viewModel.sWriter.WriteLine("Unrecognized system message.");
+						_viewModel.sWriter.WriteLine("Your message:");
+						foreach(string token in _parsedMessage)
+							_viewModel.sWriter.WriteLine(token);
+						break;
+					}
+				}
+			catch (Exception ex)
+				{
+				MessageBox.Show("Error when handling system message: " + ex.ToString());
+				}
+			}
+
+		private void ShutDownPC()
+			{
+			while (DateTime.Now.CompareTo(_shutdownTime) < 0)
+				{
+				}
+			Process.Start("shutdown", "/s /t 0");
+			}
+
+		private bool CheckShutdownTime()
+			{
+			string[] timeParse = _parsedMessage[2].Split(':');
+			if (timeParse.Count() != 2)
+				return false;
+			foreach(string time in timeParse)
+				{
+				int temp;
+				if (!int.TryParse(time, out temp))
+					return false;
+				}
+			if ((int.Parse(timeParse[0]) > 23 || int.Parse(timeParse[0]) < 0) || (int.Parse(timeParse[1]) < 0 || int.Parse(timeParse[1]) > 59))
+				return false;
+			return true;
 			}
 		}
 	}

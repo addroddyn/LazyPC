@@ -214,7 +214,7 @@ namespace LazyPC
 			{
 			try
 				{
-				if (stream != null)
+				if (stream != null && isConnected == true)
 					{
 					sWriter.Close();
 					sReader.Close();

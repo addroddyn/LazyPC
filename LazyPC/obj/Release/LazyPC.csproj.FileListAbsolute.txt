@@ -1,0 +1,14 @@
+F:\Visual\LazyPC\LazyPC\bin\Release\LazyPC.exe.config
+F:\Visual\LazyPC\LazyPC\bin\Release\LazyPC.exe
+F:\Visual\LazyPC\LazyPC\bin\Release\LazyPC.pdb
+F:\Visual\LazyPC\LazyPC\obj\Release\LazyPC.csprojResolveAssemblyReference.cache
+F:\Visual\LazyPC\LazyPC\obj\Release\MainWindow.g.cs
+F:\Visual\LazyPC\LazyPC\obj\Release\App.g.cs
+F:\Visual\LazyPC\LazyPC\obj\Release\LazyPC_MarkupCompile.cache
+F:\Visual\LazyPC\LazyPC\obj\Release\LazyPC_MarkupCompile.lref
+F:\Visual\LazyPC\LazyPC\obj\Release\MainWindow.baml
+F:\Visual\LazyPC\LazyPC\obj\Release\LazyPC.g.resources
+F:\Visual\LazyPC\LazyPC\obj\Release\LazyPC.Properties.Resources.resources
+F:\Visual\LazyPC\LazyPC\obj\Release\LazyPC.csproj.GenerateResource.Cache
+F:\Visual\LazyPC\LazyPC\obj\Release\LazyPC.exe
+F:\Visual\LazyPC\LazyPC\obj\Release\LazyPC.pdb
