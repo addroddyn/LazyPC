@@ -18,7 +18,7 @@ namespace LazyPC
 			try
 				{
 				_filePath = path.LocalPath.ToString();
-				_appName = Path.GetFileName(path.ToString());
+				_appName = Path.GetFileNameWithoutExtension(path.ToString());
 				}
 			catch (Exception ex)
 				{

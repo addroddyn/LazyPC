@@ -109,6 +109,7 @@ namespace LazyPC
 							break;
 						case "application":
 							_viewModel.sWriter.WriteLine("this is an application message.");
+							ParseAppMessage();
 							break;
 						default:
 							_viewModel.sWriter.WriteLine("Unknown message type.");
@@ -128,68 +129,161 @@ namespace LazyPC
 				}
 			}
 
-		private void ParseSystemMessage()
+		private void ParseAppMessage()
 			{
+			bool foundApp = false;
 			try
 				{
-				switch(_parsedMessage[1])
+				foreach (AppEntry app in _viewModel.appList)
 					{
-					case "disconnect":
-						_viewModel.sWriter.WriteLine("User disconnect");
-						_viewModel.Disconnect();
+					if (_parsedMessage[1].Equals(app.GetName().ToLower()))
+						{
+						foundApp = true;
 						break;
-					case "shutdown":
-						if (_parsedMessage[2] != "")
-							{
-							if (CheckShutdownTime())
+						}
+					}
+				if (foundApp)
+					{
+					switch (_parsedMessage[2])
+						{
+						case "start":
+							if (IsAppRunning(_parsedMessage[1]) == false)
 								{
-								_shutdownTime = DateTime.Parse(_parsedMessage[2]);
-								_viewModel.sWriter.WriteLine("Shutdown is scheduled for: " + _shutdownTime.ToString());
-								Thread shutdownThread = new Thread(new ThreadStart(ShutDownPC));
-								shutdownThread.Start();
+								StartApp(_parsedMessage[1]);
 								}
 							else
 								{
-								_viewModel.sWriter.WriteLine("Incorrect time format. It should hh:mm .");
+								_viewModel.sWriter.WriteLine("App is already running");
 								}
-							}
-						break;
-					default:
-						_viewModel.sWriter.WriteLine("Unrecognized system message.");
-						_viewModel.sWriter.WriteLine("Your message:");
-						foreach(string token in _parsedMessage)
-							_viewModel.sWriter.WriteLine(token);
-						break;
+							break;
+						case "stop":
+							if (IsAppRunning(_parsedMessage[1]))
+								{
+								StopApp(_parsedMessage[1]);
+								}
+							else
+								{
+								_viewModel.sWriter.WriteLine("App is already stopped");
+								}
+							break;
+						default:
+							_viewModel.sWriter.WriteLine("command not recognized");
+							break;
+						}
+					}
+				else
+					{
+					_viewModel.sWriter.WriteLine("No app found");
 					}
 				}
 			catch (Exception ex)
 				{
-				MessageBox.Show("Error when handling system message: " + ex.ToString());
+				MessageBox.Show("Error when handling application message: " + ex.ToString());
 				}
 			}
 
-		private void ShutDownPC()
+		private void StopApp(string processName)
 			{
-			while (DateTime.Now.CompareTo(_shutdownTime) < 0)
+			Process[] processes = Process.GetProcesses();
+			foreach (Process process in processes)
 				{
+				string tempName = process.ProcessName.ToLower();
+				if (tempName.Equals(processName.ToLower()))
+					{
+					_viewModel.sWriter.WriteLine("Found matching process");
+					process.CloseMainWindow();
+					process.Close();
+					return;
+					}
 				}
-			Process.Start("shutdown", "/s /t 0");
 			}
 
-		private bool CheckShutdownTime()
+	private void StartApp(string processName)
+		{
+		foreach (AppEntry app in _viewModel.appList)
 			{
-			string[] timeParse = _parsedMessage[2].Split(':');
-			if (timeParse.Count() != 2)
-				return false;
-			foreach(string time in timeParse)
+			if (app.GetName().ToLower().Equals(processName))
 				{
-				int temp;
-				if (!int.TryParse(time, out temp))
-					return false;
+				Process.Start(app.GetPath());
+				return;
 				}
-			if ((int.Parse(timeParse[0]) > 23 || int.Parse(timeParse[0]) < 0) || (int.Parse(timeParse[1]) < 0 || int.Parse(timeParse[1]) > 59))
-				return false;
-			return true;
 			}
 		}
+
+		private bool IsAppRunning(string processName)
+		{
+		Process[] processes = Process.GetProcesses();
+		foreach (Process process in processes)
+			{
+			string tempName = process.ProcessName.ToLower();
+			if (tempName.Equals(processName.ToLower()))
+				return true;
+			}
+		return false;
+		}
+
+	private void ParseSystemMessage()
+		{
+		try
+			{
+			switch (_parsedMessage[1])
+				{
+				case "disconnect":
+					_viewModel.sWriter.WriteLine("User disconnect");
+					_viewModel.Disconnect();
+					break;
+				case "shutdown":
+					if (_parsedMessage[2] != "")
+						{
+						if (CheckShutdownTime())
+							{
+							_shutdownTime = DateTime.Parse(_parsedMessage[2]);
+							_viewModel.sWriter.WriteLine("Shutdown is scheduled for: " + _shutdownTime.ToString());
+							Thread shutdownThread = new Thread(new ThreadStart(ShutDownPC));
+							shutdownThread.Start();
+							}
+						else
+							{
+							_viewModel.sWriter.WriteLine("Incorrect time format. It should hh:mm .");
+							}
+						}
+					break;
+				default:
+					_viewModel.sWriter.WriteLine("Unrecognized system message.");
+					_viewModel.sWriter.WriteLine("Your message:");
+					foreach (string token in _parsedMessage)
+						_viewModel.sWriter.WriteLine(token);
+					break;
+				}
+			}
+		catch (Exception ex)
+			{
+			MessageBox.Show("Error when handling system message: " + ex.ToString());
+			}
+		}
+
+	private void ShutDownPC()
+		{
+		while (DateTime.Now.CompareTo(_shutdownTime) < 0)
+			{
+			}
+		Process.Start("shutdown", "/s /t 0");
+		}
+
+	private bool CheckShutdownTime()
+		{
+		string[] timeParse = _parsedMessage[2].Split(':');
+		if (timeParse.Count() != 2)
+			return false;
+		foreach (string time in timeParse)
+			{
+			int temp;
+			if (!int.TryParse(time, out temp))
+				return false;
+			}
+		if ((int.Parse(timeParse[0]) > 23 || int.Parse(timeParse[0]) < 0) || (int.Parse(timeParse[1]) < 0 || int.Parse(timeParse[1]) > 59))
+			return false;
+		return true;
+		}
+	}
 	}
